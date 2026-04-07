@@ -1,0 +1,1128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Learning Management System — manage users, courses, quizzes, and certificates">
+  <title>LMS — Learning Management System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    /* ===== RESET & BASE ===== */
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg-primary: #0a0e1a;
+      --bg-secondary: #111827;
+      --bg-card: rgba(17, 24, 39, 0.7);
+      --bg-glass: rgba(255, 255, 255, 0.04);
+      --border-glass: rgba(255, 255, 255, 0.08);
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --accent-blue: #3b82f6;
+      --accent-blue-glow: rgba(59, 130, 246, 0.25);
+      --accent-purple: #8b5cf6;
+      --accent-purple-glow: rgba(139, 92, 246, 0.25);
+      --accent-emerald: #10b981;
+      --accent-emerald-glow: rgba(16, 185, 129, 0.2);
+      --accent-amber: #f59e0b;
+      --accent-rose: #f43f5e;
+      --gradient-primary: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      --gradient-card: linear-gradient(135deg, rgba(59, 130, 246, 0.08), rgba(139, 92, 246, 0.08));
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --radius-xl: 24px;
+      --shadow-glow: 0 0 40px rgba(59, 130, 246, 0.08);
+      --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* Animated background orbs */
+    body::before, body::after {
+      content: '';
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(120px);
+      opacity: 0.4;
+      z-index: 0;
+      pointer-events: none;
+    }
+    body::before {
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, rgba(59,130,246,0.15), transparent 70%);
+      top: -200px; left: -100px;
+      animation: orbFloat 20s ease-in-out infinite;
+    }
+    body::after {
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, rgba(139,92,246,0.12), transparent 70%);
+      bottom: -150px; right: -100px;
+      animation: orbFloat 25s ease-in-out infinite reverse;
+    }
+    @keyframes orbFloat {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      33% { transform: translate(50px, -30px) scale(1.1); }
+      66% { transform: translate(-30px, 50px) scale(0.95); }
+    }
+
+    /* ===== LAYOUT ===== */
+    .app-container {
+      position: relative;
+      z-index: 1;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 24px 32px 80px;
+    }
+
+    /* ===== HEADER ===== */
+    .app-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 0 32px;
+      border-bottom: 1px solid var(--border-glass);
+      margin-bottom: 32px;
+    }
+    .logo-group {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .logo-icon {
+      width: 48px; height: 48px;
+      background: var(--gradient-primary);
+      border-radius: var(--radius-md);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; font-weight: 800; color: #fff;
+      box-shadow: 0 4px 20px var(--accent-blue-glow);
+    }
+    .logo-text h1 {
+      font-size: 22px; font-weight: 700; letter-spacing: -0.5px;
+      background: var(--gradient-primary);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .logo-text span {
+      font-size: 12px; color: var(--text-muted); font-weight: 400;
+      letter-spacing: 0.5px; text-transform: uppercase;
+    }
+    .header-stats {
+      display: flex; gap: 24px;
+    }
+    .stat-pill {
+      display: flex; align-items: center; gap: 8px;
+      background: var(--bg-glass);
+      border: 1px solid var(--border-glass);
+      border-radius: 100px;
+      padding: 8px 16px;
+      font-size: 13px; color: var(--text-secondary);
+    }
+    .stat-pill .stat-count {
+      font-weight: 700; color: var(--text-primary);
+    }
+    .stat-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+    }
+    .stat-dot.blue { background: var(--accent-blue); }
+    .stat-dot.purple { background: var(--accent-purple); }
+    .stat-dot.emerald { background: var(--accent-emerald); }
+
+    /* ===== TAB NAVIGATION ===== */
+    .tab-nav {
+      display: flex;
+      gap: 6px;
+      background: var(--bg-glass);
+      border: 1px solid var(--border-glass);
+      border-radius: var(--radius-lg);
+      padding: 6px;
+      margin-bottom: 32px;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 12px 24px;
+      border: none;
+      border-radius: var(--radius-md);
+      background: transparent;
+      color: var(--text-muted);
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: var(--transition);
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .tab-btn:hover {
+      color: var(--text-secondary);
+      background: rgba(255,255,255,0.03);
+    }
+    .tab-btn.active {
+      background: var(--gradient-primary);
+      color: #fff;
+      font-weight: 600;
+      box-shadow: 0 4px 16px var(--accent-blue-glow);
+    }
+    .tab-btn .tab-icon {
+      font-size: 18px;
+    }
+
+    .tab-panel {
+      display: none;
+      animation: fadeSlide 0.4s ease;
+    }
+    .tab-panel.active { display: block; }
+
+    @keyframes fadeSlide {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ===== GLASS CARD ===== */
+    .glass-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-glass);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      box-shadow: var(--shadow-glow);
+      transition: var(--transition);
+    }
+    .glass-card:hover {
+      border-color: rgba(255,255,255,0.12);
+    }
+
+    .section-title {
+      font-size: 18px; font-weight: 700;
+      margin-bottom: 6px;
+    }
+    .section-subtitle {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+    }
+
+    /* ===== FORM ELEMENTS ===== */
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group.full { grid-column: 1 / -1; }
+    .form-label {
+      font-size: 12px; font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+    }
+    .form-input, .form-select {
+      padding: 12px 16px;
+      background: rgba(0,0,0,0.3);
+      border: 1px solid var(--border-glass);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 14px;
+      transition: var(--transition);
+      outline: none;
+    }
+    .form-input::placeholder { color: var(--text-muted); }
+    .form-input:focus, .form-select:focus {
+      border-color: var(--accent-blue);
+      box-shadow: 0 0 0 3px var(--accent-blue-glow);
+    }
+    .form-select {
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%2394a3b8' viewBox='0 0 16 16'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 36px;
+    }
+    .form-select option {
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+    }
+
+    /* ===== BUTTONS ===== */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 28px;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+      position: relative;
+      overflow: hidden;
+    }
+    .btn::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.1), transparent);
+      opacity: 0;
+      transition: var(--transition);
+    }
+    .btn:hover::after { opacity: 1; }
+
+    .btn-primary {
+      background: var(--gradient-primary);
+      color: #fff;
+      box-shadow: 0 4px 16px var(--accent-blue-glow);
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px var(--accent-blue-glow);
+    }
+    .btn-primary:active { transform: translateY(0); }
+
+    .btn-outline {
+      background: transparent;
+      color: var(--text-secondary);
+      border: 1px solid var(--border-glass);
+    }
+    .btn-outline:hover {
+      border-color: var(--accent-blue);
+      color: var(--accent-blue);
+    }
+
+    .btn-success {
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: #fff;
+      box-shadow: 0 4px 16px var(--accent-emerald-glow);
+    }
+    .btn-success:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px var(--accent-emerald-glow);
+    }
+
+    /* ===== USER LIST ===== */
+    .user-list { display: flex; flex-direction: column; gap: 8px; }
+    .user-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 18px;
+      background: var(--bg-glass);
+      border: 1px solid var(--border-glass);
+      border-radius: var(--radius-md);
+      transition: var(--transition);
+    }
+    .user-row:hover {
+      background: rgba(255,255,255,0.06);
+      border-color: rgba(255,255,255,0.12);
+      transform: translateX(4px);
+    }
+    .user-avatar {
+      width: 42px; height: 42px;
+      border-radius: 50%;
+      background: var(--gradient-primary);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 16px; color: #fff;
+      flex-shrink: 0;
+      box-shadow: 0 2px 12px var(--accent-blue-glow);
+    }
+    .user-info { flex: 1; min-width: 0; }
+    .user-name {
+      font-size: 14px; font-weight: 600;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .user-email {
+      font-size: 12px; color: var(--text-muted); margin-top: 2px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .badge {
+      padding: 4px 12px;
+      border-radius: 100px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      flex-shrink: 0;
+    }
+    .badge-student {
+      background: rgba(59,130,246,0.15);
+      color: var(--accent-blue);
+      border: 1px solid rgba(59,130,246,0.2);
+    }
+    .badge-instructor {
+      background: rgba(139,92,246,0.15);
+      color: var(--accent-purple);
+      border: 1px solid rgba(139,92,246,0.2);
+    }
+
+    /* ===== COURSE GRID ===== */
+    .course-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 20px;
+    }
+    .course-card {
+      background: var(--bg-glass);
+      border: 1px solid var(--border-glass);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      transition: var(--transition);
+      cursor: pointer;
+    }
+    .course-card:hover {
+      transform: translateY(-4px);
+      border-color: rgba(255,255,255,0.15);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.3);
+    }
+    .course-banner {
+      height: 8px;
+      background: var(--gradient-primary);
+    }
+    .course-card:nth-child(2n) .course-banner {
+      background: linear-gradient(135deg, #8b5cf6, #ec4899);
+    }
+    .course-card:nth-child(3n) .course-banner {
+      background: linear-gradient(135deg, #10b981, #3b82f6);
+    }
+    .course-body {
+      padding: 22px;
+    }
+    .course-icon {
+      width: 44px; height: 44px;
+      border-radius: var(--radius-md);
+      background: var(--gradient-card);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+      margin-bottom: 14px;
+    }
+    .course-name {
+      font-size: 16px; font-weight: 700;
+      margin-bottom: 6px;
+    }
+    .course-inst {
+      font-size: 13px;
+      color: var(--text-muted);
+      display: flex; align-items: center; gap: 6px;
+    }
+    .course-inst::before {
+      content: '';
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--accent-emerald);
+      display: inline-block;
+    }
+
+    /* ===== QUIZ ===== */
+    .quiz-selector {
+      display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap;
+    }
+    .quiz-chip {
+      padding: 10px 20px;
+      border-radius: var(--radius-sm);
+      background: var(--bg-glass);
+      border: 1px solid var(--border-glass);
+      color: var(--text-secondary);
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    .quiz-chip:hover {
+      border-color: var(--accent-purple);
+      color: var(--accent-purple);
+    }
+    .quiz-chip.active {
+      background: rgba(139,92,246,0.15);
+      border-color: var(--accent-purple);
+      color: var(--accent-purple);
+      font-weight: 600;
+    }
+
+    .quiz-question-card {
+      background: var(--bg-glass);
+      border: 1px solid var(--border-glass);
+      border-radius: var(--radius-md);
+      padding: 22px;
+      margin-bottom: 16px;
+      transition: var(--transition);
+    }
+    .quiz-question-card:hover {
+      border-color: rgba(255,255,255,0.12);
+    }
+    .quiz-q-number {
+      font-size: 11px; font-weight: 700;
+      color: var(--accent-purple);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+    .quiz-q-text {
+      font-size: 15px; font-weight: 600;
+      margin-bottom: 16px;
+    }
+    .quiz-options {
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .quiz-opt-btn {
+      padding: 12px 18px;
+      border-radius: var(--radius-sm);
+      background: rgba(0,0,0,0.2);
+      border: 1px solid var(--border-glass);
+      color: var(--text-secondary);
+      font-family: inherit;
+      font-size: 14px;
+      cursor: pointer;
+      transition: var(--transition);
+      text-align: left;
+    }
+    .quiz-opt-btn:hover {
+      border-color: var(--accent-purple);
+      color: var(--text-primary);
+      background: rgba(139,92,246,0.08);
+    }
+    .quiz-opt-btn.selected {
+      border-color: var(--accent-purple);
+      background: rgba(139,92,246,0.15);
+      color: var(--accent-purple);
+      font-weight: 600;
+    }
+    .quiz-opt-btn.correct {
+      border-color: var(--accent-emerald);
+      background: rgba(16,185,129,0.15);
+      color: var(--accent-emerald);
+    }
+    .quiz-opt-btn.wrong {
+      border-color: var(--accent-rose);
+      background: rgba(244,63,94,0.12);
+      color: var(--accent-rose);
+    }
+
+    .quiz-timer {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 14px; font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 20px;
+    }
+    .quiz-timer .timer-value {
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Result banner */
+    .quiz-result {
+      display: none;
+      text-align: center;
+      padding: 40px 28px;
+      background: var(--gradient-card);
+      border: 1px solid var(--border-glass);
+      border-radius: var(--radius-lg);
+      margin-top: 24px;
+      animation: fadeSlide 0.5s ease;
+    }
+    .quiz-result.show { display: block; }
+    .result-score {
+      font-size: 56px;
+      font-weight: 800;
+      background: var(--gradient-primary);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .result-label {
+      font-size: 14px; color: var(--text-muted);
+      margin-top: 4px; margin-bottom: 16px;
+    }
+    .result-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 24px;
+      border-radius: 100px;
+      font-size: 14px; font-weight: 600;
+    }
+    .result-badge.pass {
+      background: rgba(16,185,129,0.15);
+      color: var(--accent-emerald);
+      border: 1px solid rgba(16,185,129,0.3);
+    }
+    .result-badge.fail {
+      background: rgba(244,63,94,0.12);
+      color: var(--accent-rose);
+      border: 1px solid rgba(244,63,94,0.2);
+    }
+
+    /* ===== EMPTY STATE ===== */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-muted);
+    }
+    .empty-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+      opacity: 0.5;
+    }
+    .empty-text {
+      font-size: 15px;
+      font-weight: 500;
+    }
+
+    /* ===== TOAST ===== */
+    .toast-container {
+      position: fixed;
+      top: 24px;
+      right: 24px;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .toast {
+      padding: 14px 22px;
+      border-radius: var(--radius-md);
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-glass);
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 500;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      display: flex; align-items: center; gap: 10px;
+      animation: toastIn 0.4s ease;
+      backdrop-filter: blur(12px);
+    }
+    .toast.success { border-left: 3px solid var(--accent-emerald); }
+    .toast.error   { border-left: 3px solid var(--accent-rose); }
+    .toast.info    { border-left: 3px solid var(--accent-blue); }
+
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateX(40px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes toastOut {
+      from { opacity: 1; transform: translateX(0); }
+      to   { opacity: 0; transform: translateX(40px); }
+    }
+
+    /* ===== LOADING SKELETON ===== */
+    .skeleton {
+      background: linear-gradient(90deg, var(--bg-glass) 25%, rgba(255,255,255,0.06) 50%, var(--bg-glass) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      border-radius: var(--radius-sm);
+    }
+    @keyframes shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    /* ===== TWO-COLUMN LAYOUT ===== */
+    .two-col {
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+    @media (max-width: 900px) {
+      .two-col { grid-template-columns: 1fr; }
+      .header-stats { display: none; }
+      .form-grid { grid-template-columns: 1fr; }
+      .app-container { padding: 16px; }
+    }
+
+    /* ===== SCROLLBAR ===== */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.15); }
+  </style>
+</head>
+
+<body>
+
+<div class="toast-container" id="toast-container"></div>
+
+<div class="app-container">
+
+  <!-- HEADER -->
+  <header class="app-header">
+    <div class="logo-group">
+      <div class="logo-icon">L</div>
+      <div class="logo-text">
+        <h1>LearnHub</h1>
+        <span>Learning Management System</span>
+      </div>
+    </div>
+    <div class="header-stats">
+      <div class="stat-pill">
+        <span class="stat-dot blue"></span>
+        <span class="stat-count" id="stat-users">0</span> Users
+      </div>
+      <div class="stat-pill">
+        <span class="stat-dot purple"></span>
+        <span class="stat-count" id="stat-courses">0</span> Courses
+      </div>
+      <div class="stat-pill">
+        <span class="stat-dot emerald"></span>
+        <span class="stat-count" id="stat-quizzes">2</span> Quizzes
+      </div>
+    </div>
+  </header>
+
+  <!-- TAB NAV -->
+  <nav class="tab-nav" role="tablist" id="tab-nav">
+    <button class="tab-btn active" data-tab="users" role="tab" id="tab-btn-users">
+      <span class="tab-icon">👤</span> Users
+    </button>
+    <button class="tab-btn" data-tab="courses" role="tab" id="tab-btn-courses">
+      <span class="tab-icon">📚</span> Courses
+    </button>
+    <button class="tab-btn" data-tab="quiz" role="tab" id="tab-btn-quiz">
+      <span class="tab-icon">🧠</span> Quiz
+    </button>
+  </nav>
+
+  <!-- ============ USERS TAB ============ -->
+  <div class="tab-panel active" id="panel-users" role="tabpanel">
+    <div class="two-col">
+      <!-- Add User Form -->
+      <div class="glass-card">
+        <h2 class="section-title">Add New User</h2>
+        <p class="section-subtitle">Create a student or instructor account</p>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label" for="u-name">Full Name</label>
+            <input class="form-input" id="u-name" placeholder="John Doe" autocomplete="off">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="u-role">Role</label>
+            <select class="form-select" id="u-role">
+              <option value="student">Student</option>
+              <option value="instructor">Instructor</option>
+            </select>
+          </div>
+          <div class="form-group full">
+            <label class="form-label" for="u-email">Email Address</label>
+            <input class="form-input" id="u-email" type="email" placeholder="john@example.com" autocomplete="off">
+          </div>
+        </div>
+        <button class="btn btn-primary" id="btn-add-user" onclick="addUser()">
+          ✦ Add User
+        </button>
+      </div>
+
+      <!-- Users List -->
+      <div class="glass-card">
+        <h2 class="section-title">All Users</h2>
+        <p class="section-subtitle">Manage your students and instructors</p>
+        <div class="user-list" id="user-list">
+          <div class="empty-state">
+            <div class="empty-icon">👤</div>
+            <div class="empty-text">No users yet — add one to get started</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ COURSES TAB ============ -->
+  <div class="tab-panel" id="panel-courses" role="tabpanel">
+    <div class="two-col">
+      <!-- Add Course Form -->
+      <div class="glass-card">
+        <h2 class="section-title">Create Course</h2>
+        <p class="section-subtitle">Add a new course to the platform</p>
+        <div class="form-grid" style="grid-template-columns: 1fr;">
+          <div class="form-group">
+            <label class="form-label" for="c-name">Course Name</label>
+            <input class="form-input" id="c-name" placeholder="e.g. Introduction to JavaScript" autocomplete="off">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="c-inst">Instructor Name</label>
+            <input class="form-input" id="c-inst" placeholder="e.g. Dr. Smith" autocomplete="off">
+          </div>
+        </div>
+        <button class="btn btn-primary" id="btn-add-course" onclick="addCourse()">
+          ✦ Create Course
+        </button>
+      </div>
+
+      <!-- Course Grid -->
+      <div>
+        <div class="course-grid" id="course-grid">
+          <div class="empty-state" style="grid-column: 1/-1;">
+            <div class="empty-icon">📚</div>
+            <div class="empty-text">No courses yet — create your first one</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ QUIZ TAB ============ -->
+  <div class="tab-panel" id="panel-quiz" role="tabpanel">
+    <div class="glass-card">
+      <h2 class="section-title">Quizzes</h2>
+      <p class="section-subtitle">Test your knowledge — select a quiz to begin</p>
+
+      <div class="quiz-selector" id="quiz-selector"></div>
+
+      <div class="quiz-timer" id="quiz-timer" style="display:none;">
+        ⏱ Time remaining: <span class="timer-value" id="timer-value">--:--</span>
+      </div>
+
+      <div id="quiz-area"></div>
+
+      <div id="quiz-actions" style="margin-top:20px; display:none;">
+        <button class="btn btn-success" id="btn-submit-quiz" onclick="submitQuiz()">
+          ✔ Submit Quiz
+        </button>
+      </div>
+
+      <div class="quiz-result" id="quiz-result"></div>
+    </div>
+  </div>
+
+</div><!-- /app-container -->
+
+<script>
+
+const API = "http://localhost:3000";
+
+// ===== TOAST NOTIFICATION =====
+function showToast(msg, type = 'info') {
+  const container = document.getElementById('toast-container');
+  const toast = document.createElement('div');
+  const icons = { success: '✅', error: '❌', info: 'ℹ️' };
+  toast.className = `toast ${type}`;
+  toast.innerHTML = `${icons[type] || ''} ${msg}`;
+  container.appendChild(toast);
+  setTimeout(() => {
+    toast.style.animation = 'toastOut 0.3s ease forwards';
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
+}
+
+// ===== TAB SWITCHING =====
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(`panel-${btn.dataset.tab}`).classList.add('active');
+  });
+});
+
+// ===== USERS =====
+async function renderUsers() {
+  try {
+    const res = await fetch(`${API}/users`);
+    const users = await res.json();
+    const ul = document.getElementById('user-list');
+
+    document.getElementById('stat-users').textContent = users.length;
+
+    if (!users.length) {
+      ul.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">👤</div>
+          <div class="empty-text">No users yet — add one to get started</div>
+        </div>`;
+      return;
+    }
+
+    ul.innerHTML = users.map(u => `
+      <div class="user-row">
+        <div class="user-avatar">${u.name ? u.name[0].toUpperCase() : '?'}</div>
+        <div class="user-info">
+          <div class="user-name">${u.name}</div>
+          <div class="user-email">${u.email}</div>
+        </div>
+        <span class="badge badge-${u.role}">${u.role}</span>
+      </div>
+    `).join('');
+  } catch (e) {
+    console.warn('Could not load users:', e);
+  }
+}
+
+async function addUser() {
+  const nameEl = document.getElementById('u-name');
+  const emailEl = document.getElementById('u-email');
+  const roleEl = document.getElementById('u-role');
+
+  const name = nameEl.value.trim();
+  const email = emailEl.value.trim();
+  const role = roleEl.value;
+
+  if (!name || !email) {
+    showToast('Please fill in all fields', 'error');
+    return;
+  }
+
+  try {
+    await fetch(`${API}/users`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, email, role })
+    });
+    nameEl.value = '';
+    emailEl.value = '';
+    showToast(`User "${name}" added successfully!`, 'success');
+    renderUsers();
+  } catch (e) {
+    showToast('Failed to add user', 'error');
+  }
+}
+
+// ===== COURSES =====
+const courseIcons = ['📐', '💻', '🎨', '🔬', '📊', '🌐', '🎵', '📝', '🧪', '🏗️'];
+
+async function renderCourses() {
+  try {
+    const res = await fetch(`${API}/courses`);
+    const courses = await res.json();
+    const g = document.getElementById('course-grid');
+
+    document.getElementById('stat-courses').textContent = courses.length;
+
+    if (!courses.length) {
+      g.innerHTML = `
+        <div class="empty-state" style="grid-column:1/-1;">
+          <div class="empty-icon">📚</div>
+          <div class="empty-text">No courses yet — create your first one</div>
+        </div>`;
+      return;
+    }
+
+    g.innerHTML = courses.map((c, i) => `
+      <div class="course-card">
+        <div class="course-banner"></div>
+        <div class="course-body">
+          <div class="course-icon">${courseIcons[i % courseIcons.length]}</div>
+          <div class="course-name">${c.name}</div>
+          <div class="course-inst">${c.instructor}</div>
+        </div>
+      </div>
+    `).join('');
+  } catch (e) {
+    console.warn('Could not load courses:', e);
+  }
+}
+
+async function addCourse() {
+  const nameEl = document.getElementById('c-name');
+  const instEl = document.getElementById('c-inst');
+
+  const name = nameEl.value.trim();
+  const instructor = instEl.value.trim();
+
+  if (!name || !instructor) {
+    showToast('Please fill in all fields', 'error');
+    return;
+  }
+
+  try {
+    await fetch(`${API}/courses`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, instructor })
+    });
+    nameEl.value = '';
+    instEl.value = '';
+    showToast(`Course "${name}" created!`, 'success');
+    renderCourses();
+  } catch (e) {
+    showToast('Failed to create course', 'error');
+  }
+}
+
+// ===== QUIZ =====
+
+const quizData = [
+  {
+    title: "General Knowledge",
+    qs: [
+      { q: "What is 2 + 2?", opts: ["3", "4", "5", "6"], ans: 1 },
+      { q: "HTML stands for?", opts: ["HyperText Markup Language", "Home Tool Markup Language", "Hyper Transfer Markup Language"], ans: 0 },
+      { q: "Which planet is closest to the Sun?", opts: ["Earth", "Venus", "Mercury", "Mars"], ans: 2 },
+    ]
+  },
+  {
+    title: "Web Development",
+    qs: [
+      { q: "CSS stands for?", opts: ["Cascading Style Sheets", "Creative Style System", "Computer Style Sheets"], ans: 0 },
+      { q: "Which tag is used for the largest heading?", opts: ["<h6>", "<heading>", "<h1>", "<head>"], ans: 2 },
+      { q: "JavaScript is a ___ language", opts: ["Compiled", "Interpreted", "Assembly"], ans: 1 },
+    ]
+  }
+];
+
+let activeQuiz = null;
+let selectedAnswers = {};
+let timerInterval = null;
+let timerSeconds = 0;
+
+function initQuizSelector() {
+  const sel = document.getElementById('quiz-selector');
+  sel.innerHTML = quizData.map((qz, i) => `
+    <button class="quiz-chip" data-qi="${i}" onclick="selectQuiz(${i})">${qz.title}</button>
+  `).join('');
+}
+
+function selectQuiz(idx) {
+  document.querySelectorAll('.quiz-chip').forEach(c => c.classList.remove('active'));
+  document.querySelector(`.quiz-chip[data-qi="${idx}"]`).classList.add('active');
+  activeQuiz = idx;
+  selectedAnswers = {};
+  startQuiz();
+}
+
+function startQuiz() {
+  if (activeQuiz === null) {
+    showToast('Select a quiz first', 'info');
+    return;
+  }
+
+  const quiz = quizData[activeQuiz];
+  const area = document.getElementById('quiz-area');
+  const resultBox = document.getElementById('quiz-result');
+  resultBox.classList.remove('show');
+  resultBox.style.display = 'none';
+
+  // Timer
+  timerSeconds = quiz.qs.length * 30; // 30 sec per question
+  clearInterval(timerInterval);
+  document.getElementById('quiz-timer').style.display = 'flex';
+  updateTimerDisplay();
+  timerInterval = setInterval(() => {
+    timerSeconds--;
+    updateTimerDisplay();
+    if (timerSeconds <= 0) {
+      clearInterval(timerInterval);
+      showToast('Time is up!', 'error');
+      submitQuiz();
+    }
+  }, 1000);
+
+  // Render questions
+  area.innerHTML = quiz.qs.map((q, qi) => `
+    <div class="quiz-question-card" id="qq-${qi}">
+      <div class="quiz-q-number">Question ${qi + 1} of ${quiz.qs.length}</div>
+      <div class="quiz-q-text">${q.q}</div>
+      <div class="quiz-options">
+        ${q.opts.map((opt, oi) => `
+          <button class="quiz-opt-btn" id="opt-${qi}-${oi}" onclick="selectOpt(${qi}, ${oi})">${opt}</button>
+        `).join('')}
+      </div>
+    </div>
+  `).join('');
+
+  document.getElementById('quiz-actions').style.display = 'block';
+}
+
+function updateTimerDisplay() {
+  const m = Math.floor(timerSeconds / 60);
+  const s = timerSeconds % 60;
+  document.getElementById('timer-value').textContent =
+    `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+function selectOpt(qi, oi) {
+  selectedAnswers[qi] = oi;
+  // Visual feedback
+  const quiz = quizData[activeQuiz];
+  quiz.qs[qi].opts.forEach((_, j) => {
+    const btn = document.getElementById(`opt-${qi}-${j}`);
+    btn.classList.toggle('selected', j === oi);
+  });
+}
+
+// ===== SUBMIT QUIZ =====
+async function submitQuiz() {
+  clearInterval(timerInterval);
+  document.getElementById('quiz-timer').style.display = 'none';
+  document.getElementById('quiz-actions').style.display = 'none';
+
+  const quiz = quizData[activeQuiz];
+  let correct = 0;
+
+  quiz.qs.forEach((q, qi) => {
+    const chosen = selectedAnswers[qi];
+    q.opts.forEach((_, oi) => {
+      const btn = document.getElementById(`opt-${qi}-${oi}`);
+      btn.disabled = true;
+      if (oi === q.ans) btn.classList.add('correct');
+      else if (oi === chosen && chosen !== q.ans) btn.classList.add('wrong');
+    });
+    if (chosen === q.ans) correct++;
+  });
+
+  const pct = Math.round(correct / quiz.qs.length * 100);
+  const passed = pct >= 60;
+
+  const resBox = document.getElementById('quiz-result');
+  resBox.style.display = 'block';
+  resBox.classList.add('show');
+  resBox.innerHTML = `
+    <div class="result-score">${pct}%</div>
+    <div class="result-label">${correct} of ${quiz.qs.length} correct</div>
+    <div class="result-badge ${passed ? 'pass' : 'fail'}">
+      ${passed ? '🎉 Passed — Certificate Issued!' : '😔 Not passed — Try again'}
+    </div>
+  `;
+
+  // Save result
+  try {
+    await fetch(`${API}/results`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        user_id: 1,
+        course_id: activeQuiz + 1,
+        score: pct
+      })
+    });
+  } catch (e) { /* ignore if backend is down */ }
+
+  // Certificate
+  if (passed) {
+    try {
+      await fetch(`${API}/certificates`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_id: 1,
+          course_id: activeQuiz + 1
+        })
+      });
+    } catch (e) { /* ignore */ }
+    showToast('🎉 Certificate issued!', 'success');
+  }
+}
+
+// ===== INIT =====
+window.onload = function () {
+  renderUsers();
+  renderCourses();
+  initQuizSelector();
+};
+
+</script>
+
+</body>
+</html>
